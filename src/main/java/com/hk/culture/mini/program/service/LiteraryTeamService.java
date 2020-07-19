@@ -7,6 +7,8 @@ import com.hk.culture.mini.program.dto.query.PagesQuery;
 import com.hk.culture.mini.program.dto.vo.LiteraryTeamVO;
 import com.hk.culture.mini.program.entity.LiteraryTeam;
 
+import java.util.List;
+
 /**
  * <p>
  * 文艺团队服务表 服务类
@@ -26,4 +28,6 @@ public interface LiteraryTeamService extends IService<LiteraryTeam> {
     Result<Boolean> updateByTid(LiteraryTeamVO routeVO);
 
     Result<Boolean> deleteByTid(String tid, String operator);
+
+    List<LiteraryTeamVO> listTimeSimpleInfo();
 }

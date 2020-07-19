@@ -45,22 +45,47 @@ public class VenuesbookServiceImpl extends ServiceImpl<VenuesbookMapper, Venuesb
     }
 
     /**
-     * 根据tid查预约记录
+     * 根据tid和日期查预约记录
      * @param tid
      * @return
      */
     public List<Venuesbook> listByTidAndDate(String tid, LocalDateTime dateTime, BookTypeEnum bookTypeEnum) {
         QueryWrapper<Venuesbook> wrapper = new QueryWrapper();
 
-        wrapper.select("venuesTid", "startTime", "endTime");
         Venuesbook venuesbook = new Venuesbook();
         if (bookTypeEnum == BookTypeEnum.VENUES) {
+            wrapper.select("venuesTid", "startTime", "endTime");
             venuesbook.setVenuesTid(tid);
         } else {
             venuesbook.setActivityTid(tid);
         }
 
         // 限定已通过、审核中状态
+        wrapper.in("`state`", StateEnum.ENABLE.getState(), StateEnum.AUDITING.getState());
+        wrapper.between("startTime", dateTime.minusDays(1), dateTime.plusDays(1));
+        wrapper.setEntity(venuesbook);
+
+        return getBaseMapper().selectList(wrapper);
+    }
+
+    /**
+     * 根据日期查预约记录
+     * @param tids
+     * @return
+     */
+    public List<Venuesbook> listByDate(List<String> tids, LocalDateTime dateTime, BookTypeEnum bookTypeEnum) {
+        QueryWrapper<Venuesbook> wrapper = new QueryWrapper();
+
+        Venuesbook venuesbook = new Venuesbook();
+        if (bookTypeEnum == BookTypeEnum.VENUES) {
+            wrapper.select("venuesTid", "startTime", "endTime");
+        } else {
+//            venuesbook.setActivityTid(tid);
+            wrapper.select("venuesTid", "startTime", "endTime");
+        }
+
+        // 限定已通过、审核中状venuesTid态
+        wrapper.in("venuesTid", tids);
         wrapper.in("`state`", StateEnum.ENABLE.getState(), StateEnum.AUDITING.getState());
         wrapper.between("startTime", dateTime.minusDays(1), dateTime.plusDays(1));
         wrapper.setEntity(venuesbook);

@@ -81,5 +81,11 @@ public class LiteraryTeamController {
 
         return literaryTeamService.updateByTid(literaryTeamVO);
     }
+
+    @GetMapping("/listTeamInfo")
+    public Result listTeamInfo() {
+
+        return Result.success(literaryTeamService.listTimeSimpleInfo());
+    }
 }
 

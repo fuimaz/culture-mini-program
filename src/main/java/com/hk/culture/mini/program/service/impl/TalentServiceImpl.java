@@ -123,7 +123,7 @@ public class TalentServiceImpl extends ServiceImpl<TalentMapper, Talent> impleme
     }
 
     /**
-     * 根据Tid更新
+     * 获取人才列表
      * @return
      */
     @Override

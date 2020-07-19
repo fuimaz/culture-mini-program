@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.hk.culture.mini.program.dto.Result;
 import com.hk.culture.mini.program.dto.query.PagesQuery;
 import com.hk.culture.mini.program.dto.query.VenuesBookQuery;
+import com.hk.culture.mini.program.dto.query.VenuesQuery;
 import com.hk.culture.mini.program.entity.Venues;
 
 import java.util.List;
@@ -21,7 +22,7 @@ import java.util.List;
 public interface VenuesService extends IService<Venues> {
 
 
-    IPage<Venues> listByCondition(PagesQuery<Venues> pagesQuery);
+    IPage<Venues> listByCondition(PagesQuery<VenuesQuery> pagesQuery);
 
     Result book(VenuesBookQuery venuesBookQuery);
 
@@ -29,7 +30,7 @@ public interface VenuesService extends IService<Venues> {
      * 获取场馆预约状态
      *
      */
-    List<JSONObject> listBookState(String tid, String date, List<String> intervals);
+    List<JSONObject> listByTidAndDate(String tid, String date, List<String> intervals);
 
     List<Venues> listCanBookByDate(String date);
 

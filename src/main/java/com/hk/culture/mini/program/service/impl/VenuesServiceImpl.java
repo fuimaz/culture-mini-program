@@ -11,6 +11,7 @@ import com.hk.culture.mini.program.common.constant.StateEnum;
 import com.hk.culture.mini.program.dto.Result;
 import com.hk.culture.mini.program.dto.query.PagesQuery;
 import com.hk.culture.mini.program.dto.query.VenuesBookQuery;
+import com.hk.culture.mini.program.dto.query.VenuesQuery;
 import com.hk.culture.mini.program.entity.Appointment;
 import com.hk.culture.mini.program.entity.Venues;
 import com.hk.culture.mini.program.entity.Venuesbook;
@@ -27,8 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -53,21 +54,25 @@ public class VenuesServiceImpl extends ServiceImpl<VenuesMapper, Venues> impleme
      * @return
      */
     @Override
-    public IPage<Venues> listByCondition(PagesQuery<Venues> pagesQuery) {
+    public IPage<Venues> listByCondition(PagesQuery<VenuesQuery> pagesQuery) {
         QueryWrapper<Venues> wrapper = new QueryWrapper();
-        Venues venues = pagesQuery.getData();
-        if (StringUtils.isNotEmpty(venues.getCategory())) {
-            wrapper.eq("category", venues.getCategory());
-        }
-
-        if (StringUtils.isNotEmpty(venues.getState())) {
-            wrapper.eq("state", venues.getState());
-        }
-        // todo 根据日期查询场馆可预约状态
-
-//        wrapper.orderByDesc("stratTime");
-
+        VenuesQuery venuesQuery = pagesQuery.getData();
         Page<Venues> page = new Page<>(pagesQuery.getCurrent(), pagesQuery.getPageSize());
+        if (StringUtils.isNotEmpty(venuesQuery.getCategory())) {
+            wrapper.eq("category", venuesQuery.getCategory());
+        }
+
+        if (StringUtils.isNotEmpty(venuesQuery.getState())) {
+            wrapper.eq("state", venuesQuery.getState());
+        }
+
+        if (StringUtils.isNotEmpty(venuesQuery.getBookDate())
+                || StringUtils.isNotEmpty(venuesQuery.getInterval())) {
+            Set<String> invalidTids = listByDate(venuesQuery.getBookDate(), page, wrapper, venuesQuery.getInterval());
+            if (CollectionUtils.isNotEmpty(invalidTids)) {
+                wrapper.notIn("TID", invalidTids);
+            }
+        }
 
         IPage<Venues> activityIPage = getBaseMapper().selectPage(page, wrapper);
 
@@ -81,7 +86,7 @@ public class VenuesServiceImpl extends ServiceImpl<VenuesMapper, Venues> impleme
      * @return
      */
     @Override
-    public List<JSONObject> listBookState(String tid, String date, List<String> intervals) {
+    public List<JSONObject> listByTidAndDate(String tid, String date, List<String> intervals) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         LocalDateTime dateTime = LocalDateTime.parse(date, formatter);
 
@@ -110,6 +115,67 @@ public class VenuesServiceImpl extends ServiceImpl<VenuesMapper, Venues> impleme
         }
 
         return resList;
+    }
+
+    /**
+     * 查询指定日期的可预约清空
+     * @param page
+     * @param date
+     * @return
+     */
+    public Set<String> listByDate(String date, Page<Venues> page, QueryWrapper<Venues> wrapper, String interval) {
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime dateTime = LocalDateTime.parse(date, formatter);
+
+        IPage<Venues> activityIPage = getBaseMapper().selectPage(page, wrapper);
+        if (CollectionUtils.isEmpty(activityIPage.getRecords())) {
+            return null;
+        }
+
+        List<String> tids = activityIPage.getRecords().stream()
+                .map(venues -> venues.getTid())
+                .collect(Collectors.toList());
+
+        // 获取该日期下指定场馆全部的预约记录
+        List<Venuesbook> venuesbooks = venuesbookService.listByDate(tids, dateTime, BookTypeEnum.VENUES);
+        if (CollectionUtils.isEmpty(venuesbooks)) {
+            return null;
+        }
+
+        Map<String, Integer> dateCountMap = new HashMap<>();
+        // 统计每个场馆预约数
+        venuesbooks.stream().forEach(venuesbook -> {
+            Integer orDefault = dateCountMap.getOrDefault(venuesbook.getVenuesTid(), 0);
+            dateCountMap.put(venuesbook.getVenuesTid(), ++orDefault);
+        });
+
+        // 过滤掉预约数小于3的场馆
+        Set<String> dateInvalidTidSet = dateCountMap.entrySet().stream()
+                .filter(stringIntegerEntry -> stringIntegerEntry.getValue() >= 3)
+                .map(stringIntegerEntry -> stringIntegerEntry.getKey())
+                .collect(Collectors.toSet());
+
+        // 只查询指定日期的时候返回
+        if (StringUtils.isEmpty(interval)) {
+            return dateInvalidTidSet;
+        }
+
+        String[] split = StringUtils.split(interval, "~");
+        if (split.length != 2) {
+            log.error("split string size not equal to 2, {}", interval);
+            return dateInvalidTidSet;
+        }
+
+        LocalDateTime startTime = LocalDateTime.parse(split[0], formatter);
+        for (Venuesbook venuesbook : venuesbooks) {
+            if (venuesbook.getStartTime().equals(startTime)) {
+                // 添加已预约的场馆
+                dateInvalidTidSet.add(venuesbook.getVenuesTid());
+            }
+        }
+
+        return dateInvalidTidSet;
     }
 
     /**

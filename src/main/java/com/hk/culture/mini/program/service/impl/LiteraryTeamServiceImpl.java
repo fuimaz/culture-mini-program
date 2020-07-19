@@ -114,6 +114,26 @@ public class LiteraryTeamServiceImpl extends ServiceImpl<LiteraryTeamMapper, Lit
     }
 
     /**
+     * 获取文艺团队列表
+     *
+     * @return
+     */
+    @Override
+    public List<LiteraryTeamVO> listTimeSimpleInfo() {
+        QueryWrapper<LiteraryTeam> wrapper = new QueryWrapper();
+
+        wrapper.select("TID", "name", "leader", "leaderMobileNo", "leaderPhone");
+        wrapper.eq("`state`", StateEnum.ENABLE.getStateCode());
+        wrapper.orderByAsc("createTime");
+
+        List<LiteraryTeam> teamList = getBaseMapper().selectList(wrapper);
+        if (CollectionUtils.isEmpty(teamList)) {
+            return null;
+        }
+        return teamList.stream().map(team -> BeanUtil.convertToBean(team, LiteraryTeamVO.class)).collect(Collectors.toList());
+    }
+
+    /**
      * 插入
      *
      * @param literaryTeamVO

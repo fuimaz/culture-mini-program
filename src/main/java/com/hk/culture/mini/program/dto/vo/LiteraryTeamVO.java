@@ -3,6 +3,7 @@ package com.hk.culture.mini.program.dto.vo;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.hk.culture.mini.program.entity.LitTeamMember;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -23,6 +24,7 @@ import java.util.List;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class LiteraryTeamVO implements Serializable {
 
     private static final long serialVersionUID=1L;

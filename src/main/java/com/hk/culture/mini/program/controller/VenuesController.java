@@ -9,6 +9,7 @@ import com.hk.culture.mini.program.common.utils.BeanUtil;
 import com.hk.culture.mini.program.dto.Result;
 import com.hk.culture.mini.program.dto.query.PagesQuery;
 import com.hk.culture.mini.program.dto.query.VenuesBookQuery;
+import com.hk.culture.mini.program.dto.query.VenuesQuery;
 import com.hk.culture.mini.program.dto.vo.VenuesVO;
 import com.hk.culture.mini.program.entity.Venues;
 import com.hk.culture.mini.program.service.VenuesService;
@@ -36,18 +37,16 @@ public class VenuesController {
 
 
     @PostMapping("/list")
-    public Result<Page<VenuesVO>> list(@RequestBody PagesQuery<VenuesVO> pagesQuery) {
+    public Result<Page<VenuesVO>> list(@RequestBody PagesQuery<VenuesQuery> pagesQuery) {
         if (pagesQuery == null) {
             pagesQuery = new PagesQuery<>();
         }
 
         if (pagesQuery.getData() == null) {
-            pagesQuery.setData(new VenuesVO());
+            pagesQuery.setData(new VenuesQuery());
         }
 
-        Page<Venues> page = new Page<>(pagesQuery.getCurrent(), pagesQuery.getPageSize());
-
-        IPage<Venues> venuesIPage = venuesService.page(page);
+        IPage<Venues> venuesIPage = venuesService.listByCondition(pagesQuery);
         if (venuesIPage == null || CollectionUtils.isEmpty(venuesIPage.getRecords())) {
             return Result.success(venuesIPage);
         }
@@ -85,7 +84,7 @@ public class VenuesController {
             return Result.error(ReturnCodeEnum.PARAM_ERROR);
         }
 
-        return Result.success(venuesService.listBookState(tid, bookDate, intervals));
+        return Result.success(venuesService.listByTidAndDate(tid, bookDate, intervals));
     }
 
     @PostMapping("/listValidByDate")
